@@ -1,6 +1,7 @@
 import heapq
 from collections import deque
 from enum import IntEnum
+from typing import Literal
 
 import torch
 
@@ -257,18 +258,20 @@ class Game:
     def heuristic(self):
         return int(self._obstacles_before_exit())
 
-    def bfs(self) -> list[str] | None:
+    def bfs(self) -> tuple[list[str] | None, int]:
         visited = set()
         queue = deque()
         queue.append((self.tensor_to_tuple(self.board), [], self._cars.copy()))
+        nodes_visited = 0
 
         while queue:
+            nodes_visited += 1
             board_tuple, moves_seq, cars = queue.popleft()
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
             self._cars = cars.copy()
 
             if self.is_solution():
-                return moves_seq
+                return moves_seq, nodes_visited
 
             state_tuple = self.tensor_to_tuple(self.board)
             if state_tuple in visited:
@@ -277,20 +280,18 @@ class Game:
             possible_moves = self._get_possible_moves()
             for car_name in possible_moves:
                 pos_moves, neg_moves = possible_moves[car_name].tolist()
+                moves = [p for p in range(1, pos_moves + 1)] + [-n for n in range(1, neg_moves + 1)]
                 car = self._cars[car_name]
-                for inc in range(1, pos_moves + 1):
+                for inc in moves:
                     self._move_car(car, inc)
-                    queue.append((self.tensor_to_tuple(self.board), moves_seq + [f"{car.name.name}+{inc}"], self._cars.copy()))
+                    new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
+                    queue.append((self.tensor_to_tuple(self.board), moves_seq + [new_move], self._cars.copy()))
                     self._move_car(self._cars[car_name], -inc) # backtrack with updated car
-                for inc in range(1, neg_moves + 1):
-                    self._move_car(car, -inc)
-                    queue.append((self.tensor_to_tuple(self.board), moves_seq + [f"{car.name.name}-{inc}"], self._cars.copy()))
-                    self._move_car(self._cars[car_name], inc) # backtrack with updated car
 
-        return None
+        return None, nodes_visited
 
 
-    def a_star(self) -> list[str] | None:
+    def a_star(self) -> tuple[list[str] | None, int]:
         """
         A* search algorithm.
         """
@@ -298,8 +299,10 @@ class Game:
         # g_costs stores the minimum cost (g_score) found so far to reach a state
         g_costs = {self.tensor_to_tuple(self.board): 0}
         heapq.heappush(heap, (self.heuristic(), 0, self.tensor_to_tuple(self.board), [], self._cars.copy()))
+        nodes_visited = 0
 
         while heap:
+            nodes_visited += 1
             h, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
 
             if cost > g_costs.get(board_tuple, float('inf')):
@@ -309,32 +312,30 @@ class Game:
             self._cars = cars.copy()
 
             if self.is_solution():
-                return moves_seq
+                return moves_seq, nodes_visited
 
             possible_moves = self._get_possible_moves()
             for car_name in possible_moves:
                 pos_moves, neg_moves = possible_moves[car_name].tolist()
+                moves = [p for p in range(1, pos_moves + 1)] + [-n for n in range(1, neg_moves + 1)]
                 car = self._cars[car_name]
-                for inc in range(1, pos_moves + 1):
+                for inc in moves:
                     self._move_car(car, inc)
                     new_cost = cost + 1
                     new_board_tuple = self.tensor_to_tuple(self.board)
                     if new_cost < g_costs.get(new_board_tuple, float('inf')):
                         g_costs[new_board_tuple] = new_cost
                         f_score = new_cost + self.heuristic()
-                        heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [f"{car.name.name}+{inc}"], self._cars.copy()))
+                        new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
+                        heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [new_move], self._cars.copy()))
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
-                for inc in range(1, neg_moves + 1):
-                    self._move_car(car, -inc)
-                    new_cost = cost + 1
-                    new_board_tuple = self.tensor_to_tuple(self.board)
-                    if new_cost < g_costs.get(new_board_tuple, float('inf')):
-                        g_costs[new_board_tuple] = new_cost
-                        f_score = new_cost + self.heuristic()
-                        heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [f"{car.name.name}-{inc}"], self._cars.copy()))
-                    self._move_car(self._cars[car_name], inc)  # backtrack with updated car
 
-        return None
+        return None, nodes_visited
 
-    def solve(self) -> list[str] | None:
-        return self.a_star()
+    def solve(self, solver: Literal["a_star", "bfs"] = "a_star") -> tuple[list[str] | None, int]:
+        if solver == "a_star":
+            return self.a_star()
+        elif solver == "bfs":
+            return self.bfs()
+        else:
+            raise ValueError(f"Unknown solver: {solver}")
