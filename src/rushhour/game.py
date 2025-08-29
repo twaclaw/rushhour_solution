@@ -295,10 +295,16 @@ class Game:
         A* search algorithm.
         """
         heap = []
+        # g_costs stores the minimum cost (g_score) found so far to reach a state
+        g_costs = {self.tensor_to_tuple(self.board): 0}
         heapq.heappush(heap, (self.heuristic(), 0, self.tensor_to_tuple(self.board), [], self._cars.copy()))
 
         while heap:
             h, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
+
+            if cost > g_costs.get(board_tuple, float('inf')):
+                continue
+
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
             self._cars = cars.copy()
 
@@ -312,12 +318,20 @@ class Game:
                 for inc in range(1, pos_moves + 1):
                     self._move_car(car, inc)
                     new_cost = cost + 1
-                    heapq.heappush(heap, (self.heuristic() + new_cost, new_cost, self.tensor_to_tuple(self.board), moves_seq + [f"{car.name.name}+{inc}"], self._cars.copy()))
+                    new_board_tuple = self.tensor_to_tuple(self.board)
+                    if new_cost < g_costs.get(new_board_tuple, float('inf')):
+                        g_costs[new_board_tuple] = new_cost
+                        f_score = new_cost + self.heuristic()
+                        heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [f"{car.name.name}+{inc}"], self._cars.copy()))
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
                 for inc in range(1, neg_moves + 1):
                     self._move_car(car, -inc)
                     new_cost = cost + 1
-                    heapq.heappush(heap, (self.heuristic() + new_cost, new_cost, self.tensor_to_tuple(self.board), moves_seq + [f"{car.name.name}-{inc}"], self._cars.copy()))
+                    new_board_tuple = self.tensor_to_tuple(self.board)
+                    if new_cost < g_costs.get(new_board_tuple, float('inf')):
+                        g_costs[new_board_tuple] = new_cost
+                        f_score = new_cost + self.heuristic()
+                        heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [f"{car.name.name}-{inc}"], self._cars.copy()))
                     self._move_car(self._cars[car_name], inc)  # backtrack with updated car
 
         return None
