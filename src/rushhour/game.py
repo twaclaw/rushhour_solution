@@ -246,6 +246,13 @@ class Game:
                 moves[car_name] = torch.tensor([pos_moves, neg_moves], dtype=torch.uint8)
         return moves
 
+    def _degrees_freedom(self) -> int:
+        """
+        Count the total number of possible moves for all cars.
+        """
+        moves = self._get_possible_moves()
+        return torch.vstack(list(moves.values())).sum().item()
+
     @staticmethod
     def tensor_to_tuple(tensor: torch.Tensor) -> tuple:
         return tuple(tensor.flatten().tolist())
@@ -256,6 +263,7 @@ class Game:
 
 
     def heuristic(self):
+        # return int(self._degrees_freedom())
         return int(self._obstacles_before_exit())
 
     def bfs(self) -> tuple[list[str] | None, int]:
