@@ -4,6 +4,9 @@ from enum import IntEnum
 from typing import Literal
 
 import torch
+from rich import box
+from rich.console import Console
+from rich.table import Table
 
 BOARD_SIZE = 6
 
@@ -38,6 +41,25 @@ class CarName(IntEnum):
     P = 14  # light purple
     Q = 15  # blue
     R = 16  # green
+
+COLORS_RICH: dict[CarName, str] = {
+    CarName.X: "bright_red",
+    CarName.A: "bright_green",
+    CarName.B: "dark_orange",
+    CarName.C: "deep_sky_blue1",
+    CarName.D: "deep_pink1",
+    CarName.E: "purple",
+    CarName.F: "dark_green",
+    CarName.G: "gray",
+    CarName.H: "light_yellow3",
+    CarName.I: "light_goldenrod1",
+    CarName.J: "orange4",
+    CarName.K: "yellow",
+    CarName.O: "gold1",
+    CarName.P: "medium_purple",
+    CarName.Q: "blue1",
+    CarName.R: "green",
+}
 
 
 class Orientation(IntEnum):
@@ -125,6 +147,7 @@ class Game:
         self.board = torch.zeros((board_size, board_size), dtype=torch.uint8)
         self._cars: dict[CarName, Car] = {}
         self.board_size = board_size
+
         for car_str in initial_state:
             car = Car.from_string(car_str)
             if car.name == CarName.X:
@@ -206,6 +229,23 @@ class Game:
         for row in self.board:
             board_str += " ".join(self._cars[cell.item()].name.name if cell.item() != 0 else "." for cell in row) + "\n"
         return board_str.strip()
+
+    def draw(self):
+        console = Console()
+        table = Table(show_header=False, show_lines=True, box=box.SQUARE, padding=(0, 1))
+        for row in self.board:
+            table.add_row(
+            *[
+                (
+                f"[bold {COLORS_RICH[self._cars[cell.item()].name]}]{self._cars[cell.item()].name.name}[/]"
+                if cell.item() != 0
+                else None
+                )
+                for cell in row
+            ]
+            )
+        console.print(table)
+
 
     def _count_zeros(self, tensor: torch.Tensor, position: int) -> int:
         """

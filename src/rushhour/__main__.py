@@ -17,13 +17,13 @@ def main():
     g = Game(config["initial_state"])
 
     print("Initial board:\n")
-    print(g)
+    g.draw()
 
     solution, nodes_visited = g.solve(solver=args.algorithm.lower())
 
-    print(f"\nSolution found by {args.algorithm} visiting {nodes_visited} nodes:\n\n {solution}\n")
+    print(f"\nSolution of {len(solution)} moves found by {args.algorithm} visiting {nodes_visited} nodes:\n\n {solution}\n")
     print("Final board:\n")
-    print(g)
+    g.draw()
 
 
 if __name__ == "__main__":
