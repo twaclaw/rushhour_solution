@@ -5,6 +5,7 @@ from typing import Literal
 
 import torch
 from rich import box
+from rich.columns import Columns
 from rich.console import Console
 from rich.table import Table
 
@@ -41,6 +42,7 @@ class CarName(IntEnum):
     P = 14  # light purple
     Q = 15  # blue
     R = 16  # green
+
 
 COLORS_RICH: dict[CarName, str] = {
     CarName.X: "bright_red",
@@ -194,12 +196,13 @@ class Game:
                 f"Cannot move car {car.name.name} (by inc={inc}) (name={c.name}) ({car.indices} {c.indices}) as it overlaps with another car or is out of bounds\n{self.__str__()}. Cars: {[str(x) for x in self.cars.values()]}"
             )
 
-    def move_sequence(self, moves: list[str]):
+    def move_sequence(self, moves: list[str], draw_steps: bool = False, boards_per_row: int = 5):
         """
         Sequence of moves look like this: ["X2", "A1", "B-1", "A+3"]
         The orientation is not required because it is given by the initial position.
         """
-        for move in moves:
+        boards = []
+        for n, move in enumerate(moves):
             try:
                 car, inc = move[0], int(move[1:])
                 car = CarName[car]
@@ -208,6 +211,13 @@ class Game:
 
             if car in self._cars:  # ignore moves of cars not in the game
                 self._move_car(self._cars[car], inc)
+                if draw_steps:
+                    boards.append(self.draw(title=f"{n}:{move}", print_table=False))
+
+        if draw_steps and len(boards) > 0:
+            console = Console()
+            for i in range(0, len(boards), boards_per_row):
+                console.print(Columns(boards[i : i + boards_per_row]))
 
     def _obstacles_before_exit(self) -> int:
         """
@@ -223,29 +233,20 @@ class Game:
         """
         return self._obstacles_before_exit() == 0
 
-
     def __str__(self):
         board_str = ""
         for row in self.board:
             board_str += " ".join(self._cars[cell.item()].name.name if cell.item() != 0 else "." for cell in row) + "\n"
         return board_str.strip()
 
-    def draw(self):
+    def draw(self, print_table: bool = True, title: str | None = None) -> Table:
         console = Console()
-        table = Table(show_header=False, show_lines=True, box=box.SQUARE, padding=(0, 1))
+        table = Table(show_header=False, show_lines=True, box=box.SQUARE, padding=(0, 1), title=title)
         for row in self.board:
-            table.add_row(
-            *[
-                (
-                f"[bold {COLORS_RICH[self._cars[cell.item()].name]}]{self._cars[cell.item()].name.name}[/]"
-                if cell.item() != 0
-                else None
-                )
-                for cell in row
-            ]
-            )
-        console.print(table)
-
+            table.add_row(*[(f"[bold {COLORS_RICH[self._cars[cell.item()].name]}]{self._cars[cell.item()].name.name}[/]" if cell.item() != 0 else None) for cell in row])
+        if print_table:
+            console.print(table)
+        return table
 
     def _count_zeros(self, tensor: torch.Tensor, position: int) -> int:
         """
@@ -301,7 +302,6 @@ class Game:
     def complement(seq: list[str]) -> list[str]:
         return [f"{x[0]}{-int(x[1:])}" if x[1] == "+" else f"{x[0]}+{abs(int(x[1:]))}" for x in seq]
 
-
     def heuristic(self):
         # return int(self._degrees_freedom())
         return int(self._obstacles_before_exit())
@@ -334,10 +334,9 @@ class Game:
                     self._move_car(car, inc)
                     new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
                     queue.append((self.tensor_to_tuple(self.board), moves_seq + [new_move], self._cars.copy()))
-                    self._move_car(self._cars[car_name], -inc) # backtrack with updated car
+                    self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
 
         return None, nodes_visited
-
 
     def a_star(self) -> tuple[list[str] | None, int]:
         """
@@ -353,7 +352,7 @@ class Game:
             nodes_visited += 1
             h, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
 
-            if cost > g_costs.get(board_tuple, float('inf')):
+            if cost > g_costs.get(board_tuple, float("inf")):
                 continue
 
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
@@ -371,7 +370,7 @@ class Game:
                     self._move_car(car, inc)
                     new_cost = cost + 1
                     new_board_tuple = self.tensor_to_tuple(self.board)
-                    if new_cost < g_costs.get(new_board_tuple, float('inf')):
+                    if new_cost < g_costs.get(new_board_tuple, float("inf")):
                         g_costs[new_board_tuple] = new_cost
                         f_score = new_cost + self.heuristic()
                         new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
