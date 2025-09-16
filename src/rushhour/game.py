@@ -212,7 +212,7 @@ class Game:
             if car in self._cars:  # ignore moves of cars not in the game
                 self._move_car(self._cars[car], inc)
                 if draw_steps:
-                    boards.append(self.draw(title=f"{n}:{move}", print_table=False))
+                    boards.append(self.draw(title=f"{n+1}:{move}", print_table=False))
 
         if draw_steps and len(boards) > 0:
             console = Console()
@@ -302,7 +302,7 @@ class Game:
     def complement(seq: list[str]) -> list[str]:
         return [f"{x[0]}{-int(x[1:])}" if x[1] == "+" else f"{x[0]}+{abs(int(x[1:]))}" for x in seq]
 
-    def heuristic(self):
+    def heuristic(self) -> int:
         # return int(self._degrees_freedom())
         return int(self._obstacles_before_exit())
 
@@ -343,14 +343,13 @@ class Game:
         A* search algorithm.
         """
         heap = []
-        # g_costs stores the minimum cost (g_score) found so far to reach a state
         g_costs = {self.tensor_to_tuple(self.board): 0}
         heapq.heappush(heap, (self.heuristic(), 0, self.tensor_to_tuple(self.board), [], self._cars.copy()))
         nodes_visited = 0
 
         while heap:
             nodes_visited += 1
-            h, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
+            _, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
 
             if cost > g_costs.get(board_tuple, float("inf")):
                 continue
