@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A Rush Hour solver template"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["numpy>=2.3.1", "torch>=2.7.1"]
+dependencies = ["numpy>=2.3.1", "torch>=2.7.1", "rich>=14.1.0"]
 
 [tool.ruff]
 line-length = 179
@@ -17,3 +17,12 @@ ignore = ["E741", "F722"]
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
+
+[project.scripts]
+rushhour = "rushhour.__main__:main"
+draw_grid = "rushhour.draw_grid:main"
+
+[dependency-groups]
+dev = [
+    "matplotlib>=3.10.6",
+]
