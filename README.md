@@ -26,14 +26,14 @@ See [examples](./examples) to see how to define the input configuration.
 ```bash
 rushhour --help
 
-# defaults to A*
+# Defaults to A*
 rushhour --conf examples/expert31.json  solve
 rushhour --conf examples/expert31.json  solve --algorithm bfs
 
-# to draw all the board positions in the solution
+# To draw all the board positions in the solution
 rushhour --conf examples/expert31.json  --draw-steps solve
 
-# provided the input file has the field "solution"
+# To verify a solution, provided the input file has the field "solution"
 rushhour --conf examples/expert31.json  --draw-steps verify
 ```
 
