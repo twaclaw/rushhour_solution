@@ -28,7 +28,7 @@ def do_solve(args):
         individual_steps += int(move[2])
 
     final_board = g.draw(print_table=False, title="Final Board")
-    console.print(Columns([initial_board, final_board], equal=True, expand=True))
+    console.print(Columns([initial_board, final_board]))
 
     console.print("\n[bold green]Solution found![/bold green]")
     console.print(f"[cyan]Algorithm:[/cyan] {args.algorithm}")
@@ -38,7 +38,7 @@ def do_solve(args):
 
     if args.draw_steps:
         g2 = Game(config["initial_state"])
-        g2.move_sequence(solution, draw_steps=True, boards_per_row=5)
+        g2.move_sequence(solution, draw_steps=True, boards_per_row=4)
 
 
 def do_verify(args):
@@ -46,16 +46,29 @@ def do_verify(args):
         config = json.load(f)
 
     g = Game(config["initial_state"])
-    print("Initial board:\n")
-    g.draw()
+    initial_board = g.draw(print_table=False, title="Initial Board")
     solution = config.get("solution", [])
     if not solution:
         print("No solution found in the configuration file.")
         return
-    print(f"\nVerifying solution of {len(solution)} moves:\n\n {solution}\n")
-    g.move_sequence(solution, draw_steps=args.draw_steps, boards_per_row=5)
 
-    g.draw()
+    g.move_sequence(solution, draw_steps=args.draw_steps, boards_per_row=4)
+    individual_steps = 1 + 5 - g.cars[CarName.X].end[1]
+    for move in solution:
+        individual_steps += int(move[2])
+
+    final_board = g.draw(print_table=False, title="Final Board")
+    console = Console()
+    console.print(Columns([initial_board, final_board]))
+
+    if g.is_solution():
+        console.print("\n[bold green]Valid solution![/bold green]")
+    else:
+        console.print("\n[bold red]Not a solution![/bold red]")
+
+    console.print(f"[cyan]Moves:[/cyan] {len(solution)} ({individual_steps})")
+    console.print(f"[cyan]Solution:[/cyan] {solution}\n")
+
 
 
 def main():

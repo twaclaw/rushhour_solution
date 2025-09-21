@@ -209,7 +209,13 @@ class Game:
             except (KeyError, ValueError):
                 raise ValueError(f"Invalid move: {move}. Expected format is '<CarName><inc>', e.g., 'X2' or 'X-1'.")
 
-            if car in self._cars:  # ignore moves of cars not in the game
+            if car in self._cars:
+                pos_moves, neg_moves = self._get_car_moves(car)
+                if inc > 0 and inc > pos_moves:
+                    raise ValueError(f"Invalid move: {move}. Car {car.name} can only move up to {pos_moves} steps forward.")
+                if inc < 0 and abs(inc) > neg_moves:
+                    raise ValueError(f"Invalid move: {move}. Car {car.name} can only move up to {neg_moves} steps backward.")
+
                 self._move_car(self._cars[car], inc)
                 if draw_steps:
                     boards.append(self.draw(title=f"{n+1}:{move}", print_table=False))
@@ -303,7 +309,7 @@ class Game:
         return [f"{x[0]}{-int(x[1:])}" if x[1] == "+" else f"{x[0]}+{abs(int(x[1:]))}" for x in seq]
 
     def heuristic(self) -> int:
-        # return int(self._degrees_freedom())
+        # return int(self._degrees_freedom()) # this doesn't make sense as a heuristic
         return int(self._obstacles_before_exit())
 
     def bfs(self) -> tuple[list[str] | None, int]:
@@ -341,6 +347,13 @@ class Game:
     def a_star(self) -> tuple[list[str] | None, int]:
         """
         A* search algorithm.
+
+        Specifically, A* selects the path that minimizes
+
+        f(n) = g (n) + h (n)
+        where n is the next node to be evaluated,
+        g(n) is the cost of the path from the start node to n,
+        and h(n) is a heuristic that estimates the cost of the cheapest path from n to the goal (wikipedia).
         """
         heap = []
         g_costs = {self.tensor_to_tuple(self.board): 0}
