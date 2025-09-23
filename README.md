@@ -1,10 +1,10 @@
-# Two different approaches to solving the Rush Hour puzzle 🚗
+# Two different approaches to solving the Rushhour puzzle 🚗
 
 I coded these solutions purely for fun. They solve [this challenge](https://twaclaw.github.io/posts/projects/programming_challenge/).
 
 I tackled the problem in two different ways:
 
-- Using standard space search strategies (BFS and $A^{*}$) in Python.
+- Using standard space-search strategies (BFS and $A^{*}$) in Python.
 - Implementing it declaratively using [JuMP](https://jump.dev/) (an algebraic modeling language for mathematical optimization in Julia).
 
 
@@ -19,14 +19,14 @@ uv venv --python=python3.13
 uv pip install -e .
 ```
 
-### Running it
+### Execution
 
 See [examples](./examples) to see how to define the input configuration.
 
 ```bash
 rushhour --help
 
-# Defaults to A*
+# Defaults to A* (--algorithm astar)
 rushhour --conf examples/expert31.json  solve
 rushhour --conf examples/expert31.json  solve --algorithm bfs
 
@@ -34,7 +34,7 @@ rushhour --conf examples/expert31.json  solve --algorithm bfs
 rushhour --conf examples/expert31.json  --draw-steps solve
 
 # To verify a solution, provided the input file has the field "solution"
-rushhour --conf examples/expert31.json  --draw-steps verify
+rushhour --conf examples/beginner10.json  --draw-steps verify
 ```
 
 Here is an example of the output:
@@ -45,6 +45,8 @@ Here is an example of the output:
 
 ## JuMP solver
 
-Coming soon!
+Three slightly different models have been implemented. See the [JuMP README](./jump/README.md) for details.
 
-<!-- Check [this post]() for an explanation of the approach. -->
+<!-- For a detailed explanation of the approach, check [this post](https://twaclaw.github.io/posts/projects/optimizing_rushhour). -->
+
+
