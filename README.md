@@ -45,7 +45,7 @@ Here is an example of the output:
 
 ## JuMP solver
 
-Three slightly different models have been implemented. See the [JuMP README](./jump/README.md) for details.
+I implemented three slightly different models. See the [jump](./jump/README.md) folder for details.
 
 <!-- For a detailed explanation of the approach, check [this post](https://twaclaw.github.io/posts/projects/optimizing_rushhour). -->
 

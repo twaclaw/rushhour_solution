@@ -22,10 +22,7 @@ The crux of this formulation is the constraint that ensures cars of length two c
 
 As shown in the figure below, the two moves in the middle ($+1$, $+2$) are not problematic because they are accounted for by the non-overlapping constraint. However, the move on the far right is problematic because the red car would go through the purple car.
 
-<img src="../images/xh20_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;">
-<img src="../images/xh21_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;">
-<img src="../images/xh22_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;">
-<img src="../images/xh23_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;">
+<img src="../images/xh20_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;"><img src="../images/xh21_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;"><img src="../images/xh22_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;"><img src="../images/xh23_pv12.svg" alt="Image 1" width="20%" style="display:inline-block; margin-right:2%;">
 
 *Figure. A car with a length of 2 starts in the third row, first column. It moves right, in a single time step,  by 1, 2, and 3 tiles, respectively.*
 
