@@ -74,6 +74,13 @@ target_car = :X
 S = 6  # board size
 T = 50 # Max time steps
 
+C2 = []
+for c in initial_conf
+    if c.length == 2
+        push!(C2, c.id)
+    end
+end
+
 
 #-----------------------------------------------------------------------------------------
 # Variables
@@ -107,10 +114,11 @@ if model_option == "model1" || model_option == "model0"
     @variable(model, exit_mask[t in 1:T], Bin)
     @variable(model, exit_mask_not[t in 1:T], Bin)
 elseif model_option == "model2"
+    # TODO: define only for cars of length 2
     mask_symbols = Symbol[:forward, :backward, :or, :and1, :and2, :mask, :conditional_mask]
-    @variable(model, mask[s in mask_symbols, t in 1:T, c in C, i in 1:S], Bin)
+    @variable(model, mask[s in mask_symbols, t in 1:T, c in C2, i in 1:S], Bin)
     # used to calculate the difference between mask[:or] and cars
-    @variable(model, mask_diff[t in 1:T, c in C, i in 1:S], Int)
+    @variable(model, mask_diff[t in 1:T, c in C2, i in 1:S], Int)
 end
 
 #-----------------------------------------------------------------------------------------
@@ -168,7 +176,7 @@ end
 if model_option == "model2"
     # Constraints: defining a mask for car movements
     for t in 1:T
-        for c in C
+        for c in C2
             # Constraints: forward -> elements starting at pin and moving forward set to 1
             @constraint(model, mask[:forward, t, c, 1] == pin[t, c, 1])
             @constraint(model, mask[:forward, t, c, S] == mask[:forward, t, c, S-1])
@@ -199,7 +207,7 @@ if model_option == "model2"
     end
 
     for t in 2:T
-        for c in C
+        for c in C2
             for i in 1:S
                 # Constraint: forward[t-1] AND backward[t]
                 @constraints(model, begin
@@ -239,7 +247,7 @@ for t in 1:T
             if haskey(cars_h, row)
                 for c in cars_h[row]
                     sum_cars += cars[t, c, col]
-                    if model_option == "model2"
+                    if model_option == "model2" && c in C2
                         sum_cars += mask[:conditional_mask, t, c, col]  # only count the car if it is moving
                     end
                 end
@@ -247,7 +255,7 @@ for t in 1:T
             if haskey(cars_v, col)
                 for c in cars_v[col]
                     sum_cars += cars[t, c, row]
-                    if model_option == "model2"
+                    if model_option == "model2" && c in C2
                         sum_cars += mask[:conditional_mask, t, c, row]  # only count the car if it is moving
                     end
                 end
