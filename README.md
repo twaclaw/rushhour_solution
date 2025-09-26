@@ -79,7 +79,7 @@ As shown in the figure below, the two moves in the middle ($+1$, $+2$) are not p
 *Figure. A car with a length of 2 starts in the third row, first column. It moves right, in a single time step,  by 1, 2, and 3 tiles, respectively.*
 
 
-### Model 0
+#### Model 0
 
 This is the base model. It restricts cars from moving more than one tile per turn. This condition prevents tunneling. The objective function is the number of steps it takes to move car $X$ 🚗 to the exit.
 
