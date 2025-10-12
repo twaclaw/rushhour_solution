@@ -322,13 +322,6 @@ class Game:
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
             self._cars = cars.copy()
 
-            if self.is_solution():
-                return moves_seq, nodes_visited
-
-            state_tuple = self.tensor_to_tuple(self.board)
-            if state_tuple in visited:
-                continue
-            visited.add(state_tuple)
             possible_moves = self._get_possible_moves()
             for car_name in possible_moves:
                 pos_moves, neg_moves = possible_moves[car_name].tolist()
@@ -337,7 +330,13 @@ class Game:
                 for inc in moves:
                     self._move_car(car, inc)
                     new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
-                    queue.append((self.tensor_to_tuple(self.board), moves_seq + [new_move], self._cars.copy()))
+                    if self.is_solution():
+                        return moves_seq + [new_move], nodes_visited
+
+                    tensor_tuple = self.tensor_to_tuple(self.board)
+                    if tensor_tuple not in visited:
+                        queue.append((tensor_tuple, moves_seq + [new_move], self._cars.copy()))
+                        visited.add(tensor_tuple)
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
 
         return None, nodes_visited
@@ -346,7 +345,7 @@ class Game:
         """
         A* search algorithm.
 
-        Specifically, A* selects the path that minimizes
+        A* selects the path that minimizes:
 
         f(n) = g (n) + h (n)
         where n is the next node to be evaluated,
@@ -357,6 +356,7 @@ class Game:
         g_costs = {self.tensor_to_tuple(self.board): 0}
         heapq.heappush(heap, (self.heuristic(), 0, self.tensor_to_tuple(self.board), [], self._cars.copy()))
         nodes_visited = 0
+        visited = set()
 
         while heap:
             nodes_visited += 1
@@ -368,9 +368,6 @@ class Game:
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
             self._cars = cars.copy()
 
-            if self.is_solution():
-                return moves_seq, nodes_visited
-
             possible_moves = self._get_possible_moves()
             for car_name in possible_moves:
                 pos_moves, neg_moves = possible_moves[car_name].tolist()
@@ -378,13 +375,20 @@ class Game:
                 car = self._cars[car_name]
                 for inc in moves:
                     self._move_car(car, inc)
+                    new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
+
+                    if self.is_solution():
+                        return moves_seq + [new_move], nodes_visited
+
                     new_cost = cost + 1
                     new_board_tuple = self.tensor_to_tuple(self.board)
-                    if new_cost < g_costs.get(new_board_tuple, float("inf")):
+                    if (new_board_tuple not in visited and
+                        new_cost < g_costs.get(new_board_tuple, float("inf"))):
                         g_costs[new_board_tuple] = new_cost
                         f_score = new_cost + self.heuristic() # f(n) = g(n) + h(n)
-                        new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
                         heapq.heappush(heap, (f_score, new_cost, new_board_tuple, moves_seq + [new_move], self._cars.copy()))
+                        visited.add(new_board_tuple)
+
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
 
         return None, nodes_visited
