@@ -314,10 +314,8 @@ class Game:
         visited = set()
         queue = deque()
         queue.append((self.tensor_to_tuple(self.board), [], self._cars.copy()))
-        nodes_visited = 0
 
         while queue:
-            nodes_visited += 1
             board_tuple, moves_seq, cars = queue.popleft()
             self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
             self._cars = cars.copy()
@@ -331,7 +329,7 @@ class Game:
                     self._move_car(car, inc)
                     new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
                     if self.is_solution():
-                        return moves_seq + [new_move], nodes_visited
+                        return moves_seq + [new_move], len(visited) + 1
 
                     tensor_tuple = self.tensor_to_tuple(self.board)
                     if tensor_tuple not in visited:
@@ -339,7 +337,7 @@ class Game:
                         visited.add(tensor_tuple)
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
 
-        return None, nodes_visited
+        return None, len(visited)
 
     def a_star(self) -> tuple[list[str] | None, int]:
         """
@@ -355,11 +353,9 @@ class Game:
         heap = []
         g_costs = {self.tensor_to_tuple(self.board): 0}
         heapq.heappush(heap, (self.heuristic(), 0, self.tensor_to_tuple(self.board), [], self._cars.copy()))
-        nodes_visited = 0
         visited = set()
 
         while heap:
-            nodes_visited += 1
             _, cost, board_tuple, moves_seq, cars = heapq.heappop(heap)
 
             if cost > g_costs.get(board_tuple, float("inf")):
@@ -378,7 +374,7 @@ class Game:
                     new_move = f"{car.name.name}+{inc}" if inc > 0 else f"{car.name.name}{inc}"
 
                     if self.is_solution():
-                        return moves_seq + [new_move], nodes_visited
+                        return moves_seq + [new_move], len(visited) + 1
 
                     new_cost = cost + 1
                     new_board_tuple = self.tensor_to_tuple(self.board)
@@ -391,7 +387,7 @@ class Game:
 
                     self._move_car(self._cars[car_name], -inc)  # backtrack with updated car
 
-        return None, nodes_visited
+        return None, len(visited)
 
     def solve(self, solver: Literal["a_star", "bfs"] = "a_star") -> tuple[list[str] | None, int]:
         if solver == "a_star":

@@ -129,6 +129,15 @@ function get_solution_sequence(model, T, SIZE, C)
     return movements
 end
 
+function get_car_by_id(cars_data, id::Symbol)
+    for car in cars_data
+        if car.id == id
+            return car
+        end
+    end
+    return nothing
+end
+
 function save_results(model, T, SIZE, C)
     # for debugging
     open("results.txt", "w") do io
