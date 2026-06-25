@@ -3,7 +3,7 @@ from collections import deque
 from enum import IntEnum
 from typing import Literal
 
-import torch
+import numpy as np
 from rich import box
 from rich.columns import Columns
 from rich.console import Console
@@ -112,11 +112,11 @@ class Car:
         return (self.start[0] + self.size - 1, self.start[1])
 
     @property
-    def value(self) -> torch.Tensor:
+    def value(self) -> np.ndarray:
         """
-        A tensor representing the car's value on the board.
+        An array representing the car's value on the board.
         """
-        return torch.tensor([[self.name]] * self.size, dtype=torch.uint8).T
+        return np.full(self.size, int(self.name), dtype=np.uint8)
 
     @property
     def indices(self) -> tuple[slice, int] | tuple[int, slice]:
@@ -146,7 +146,7 @@ class Game:
         Initial states follow the format: <CarName><Orientation><x><y>
         ["XH23", "AH01", "BH12", ...]
         """
-        self.board = torch.zeros((board_size, board_size), dtype=torch.uint8)
+        self.board = np.zeros((board_size, board_size), dtype=np.uint8)
         self._cars: dict[CarName, Car] = {}
         self.board_size = board_size
 
@@ -170,7 +170,7 @@ class Game:
         if not car.in_board():
             return False
 
-        return torch.all(self.board[car.indices] == 0).item()
+        return bool(np.all(self.board[car.indices] == 0))
 
     def _place_car(self, car: Car):
         self.board[car.indices] = car.value
@@ -180,14 +180,14 @@ class Game:
         if not c.in_board():
             return False
 
-        return torch.all((self.board[c.indices] == 0) | (self.board[c.indices] == c.name)).item()
+        return bool(np.all((self.board[c.indices] == 0) | (self.board[c.indices] == c.name)))
 
     def _move_car(self, car: Car, inc: int):
         c = car.move_by(inc)
         if not c.in_board():
             raise ValueError(f"Car {c.name.name} moved out of bounds to {c.start}")
 
-        if torch.all((self.board[c.indices] == 0) | (self.board[c.indices] == c.name)).item():
+        if bool(np.all((self.board[c.indices] == 0) | (self.board[c.indices] == c.name))):
             self.board[car.indices] = 0
             self.board[c.indices] = c.value
             self._cars[c.name] = c
@@ -230,7 +230,7 @@ class Game:
         """
         xcar = self._cars.get(CarName.X)
         end = xcar.end
-        return (self.board[end[0], end[1] + 1 :] != 0).sum().item()
+        return int((self.board[end[0], end[1] + 1 :] != 0).sum())
 
     def is_solution(self) -> bool:
         """
@@ -252,15 +252,15 @@ class Game:
             console.print(table)
         return table
 
-    def _count_zeros(self, tensor: torch.Tensor, position: int) -> int:
+    def _count_zeros(self, array: np.ndarray, position: int) -> int:
         """
-        Count the number of zeros in the tensor starting from the given position.
+        Count the number of zeros in the array starting from the given position.
         """
-        if position >= len(tensor) or tensor[position] != 0:
+        if position >= len(array) or array[position] != 0:
             return 0
 
-        zeros = tensor[position:] == 0
-        return zeros.sum().item() if zeros.all() else zeros.float().argmin().item()
+        zeros = array[position:] == 0
+        return int(zeros.sum()) if zeros.all() else int(zeros.argmin())
 
     @property
     def cars(self) -> dict[CarName, Car]:
@@ -275,20 +275,20 @@ class Game:
         if car.orientation == Orientation.H:
             row = self.board[car.start[0]]
             pos_moves = self._count_zeros(row, car.end[1] + 1)
-            neg_moves = self._count_zeros(row.flip(0), self.board_size - (car.start[1]))
+            neg_moves = self._count_zeros(np.flip(row), self.board_size - (car.start[1]))
         else:
             col = self.board[:, car.start[1]]
             pos_moves = self._count_zeros(col, car.end[0] + 1)
-            neg_moves = self._count_zeros(col.flip(0), self.board_size - (car.start[0]))
+            neg_moves = self._count_zeros(np.flip(col), self.board_size - (car.start[0]))
 
         return pos_moves, neg_moves
 
-    def _get_possible_moves(self) -> dict[CarName, torch.Tensor]:
+    def _get_possible_moves(self) -> dict[CarName, np.ndarray]:
         moves = {}
         for car_name in self._cars:
             pos_moves, neg_moves = self._get_car_moves(car_name)
             if pos_moves > 0 or neg_moves > 0:
-                moves[car_name] = torch.tensor([pos_moves, neg_moves], dtype=torch.uint8)
+                moves[car_name] = np.array([pos_moves, neg_moves], dtype=np.uint8)
         return moves
 
     def _degrees_freedom(self) -> int:
@@ -296,10 +296,10 @@ class Game:
         Count the total number of possible moves for all cars.
         """
         moves = self._get_possible_moves()
-        return torch.vstack(list(moves.values())).sum().item()
+        return int(np.vstack(list(moves.values())).sum())
 
     @staticmethod
-    def tensor_to_tuple(tensor: torch.Tensor) -> tuple:
+    def tensor_to_tuple(tensor: np.ndarray) -> tuple:
         return tuple(tensor.flatten().tolist())
 
     @staticmethod
@@ -317,7 +317,7 @@ class Game:
 
         while queue:
             board_tuple, moves_seq, cars = queue.popleft()
-            self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
+            self.board = np.array(board_tuple, dtype=np.uint8).reshape(self.board_size, self.board_size).copy()
             self._cars = cars.copy()
 
             possible_moves = self._get_possible_moves()
@@ -361,7 +361,7 @@ class Game:
             if cost > g_costs.get(board_tuple, float("inf")):
                 continue
 
-            self.board = torch.tensor(board_tuple, dtype=torch.uint8).reshape(self.board_size, self.board_size).clone()
+            self.board = np.array(board_tuple, dtype=np.uint8).reshape(self.board_size, self.board_size).copy()
             self._cars = cars.copy()
 
             possible_moves = self._get_possible_moves()
