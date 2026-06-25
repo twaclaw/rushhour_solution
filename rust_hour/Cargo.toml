@@ -1,0 +1,11 @@
+[package]
+name = "rust_hour"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "rust_hour"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.29", features = ["extension-module", "abi3-py310"] }

@@ -5,7 +5,7 @@ from rich.columns import Columns
 from rich.console import Console
 
 from .game import CarName, Game
-
+from time import perf_counter
 
 def do_solve(args):
     with open(args.conf, "r") as f:
@@ -16,7 +16,18 @@ def do_solve(args):
 
     initial_board = g.draw(console, print_table=False, title="Initial Board")
 
-    solution, nodes_visited = g.solve(solver=args.algorithm.lower())
+    if args.rust:
+        import rust_hour
+
+        t0 = perf_counter()
+        solution, nodes_visited = rust_hour.solve(config["initial_state"], solver=args.algorithm.lower())
+        tf = perf_counter() - t0
+        if solution is not None:
+            g.move_sequence(solution)  # replay onto the Python game so rendering matches
+    else:
+        t0 = perf_counter()
+        solution, nodes_visited = g.solve(solver=args.algorithm.lower())
+        tf = perf_counter() - t0
 
     if solution is None:
         console.print(initial_board)
@@ -39,6 +50,7 @@ def do_solve(args):
     console.print(f"[cyan]Algorithm:[/cyan] {args.algorithm}")
     console.print(f"[cyan]Moves:[/cyan] {len(solution)} ({individual_steps})")
     console.print(f"[cyan]Nodes visited:[/cyan] {nodes_visited}")
+    console.print(f"[cyan]Execution time:[/cyan] {tf}")
     console.print(f"[cyan]Solution:[/cyan] {json.dumps(solution)}\n")
 
     console.print(Columns([initial_board, final_board]))
@@ -121,6 +133,11 @@ def main():
         help="Algorithm to use (bfs or a_star)",
         default="a_star",
         choices=["bfs", "a_star"],
+    )
+    solve_parser.add_argument(
+        "--rust",
+        action="store_true",
+        help="Use the Rust solver (rust_hour) instead of the Python implementation",
     )
     solve_parser.set_defaults(func=do_solve)
 
